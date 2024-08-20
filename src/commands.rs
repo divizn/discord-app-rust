@@ -30,7 +30,7 @@ pub async fn age(
 ///
 /// Enter '>count` to add to the count
 #[poise::command(prefix_command, slash_command)]
-pub async fn vote(
+pub async fn count(
     ctx: Context<'_>,
 ) -> Result<(), Error> {
     // Lock the Mutex in a block {} so the Mutex isn't locked across an await point
@@ -45,7 +45,7 @@ pub async fn vote(
 }
 
 #[poise::command(prefix_command, slash_command)]
-pub async fn get_votes(
+pub async fn get_count(
     ctx: Context<'_>,
 ) -> Result<(), Error> {
     let count = *ctx.data().count.lock().unwrap();

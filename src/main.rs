@@ -46,8 +46,8 @@ async fn main() {
     let options = poise::FrameworkOptions {
         commands: vec![
             commands::age(),
-            commands::vote(),
-            commands::get_votes(),
+            commands::count(),
+            commands::get_count(),
             ],
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some(">".into()),

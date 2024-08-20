@@ -1,56 +1,82 @@
+mod commands;
+
 use std::env;
+use poise::serenity_prelude as serenity;
+use std::sync::Mutex;
 
-use serenity::async_trait;
-use serenity::model::channel::Message;
-use serenity::model::gateway::Ready;
-use serenity::prelude::*;
 
-struct Handler;
+struct Data {
+    count: Mutex<usize>,
+} // User data, which is stored and accessible in all command invocations
+type Error = Box<dyn std::error::Error + Send + Sync>;
+type Context<'a> = poise::Context<'a, Data, Error>;
 
-#[async_trait]
-impl EventHandler for Handler {
-    // Set a handler for the `message` event. This is called whenever a new message is received.
-    //
-    // Event handlers are dispatched through a threadpool, and so multiple events can be
-    // dispatched simultaneously.
-    async fn message(&self, ctx: Context, msg: Message) {
-        if msg.content == "!ping" {
-            // Sending a message can fail, due to a network error, an authentication error, or lack
-            // of permissions to post in the channel, so log to stdout when some error happens,
-            // with a description of it.
-            if let Err(why) = msg.channel_id.say(&ctx.http, "Pong!").await {
-                println!("Error sending message: {why:?}");
+
+async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
+    // This is our custom error handler
+    // They are many errors that can occur, so we only handle the ones we want to customize
+    // and forward the rest to the default handler
+    match error {
+        poise::FrameworkError::Setup { error, .. } => panic!("Failed to start bot: {:?}", error),
+        poise::FrameworkError::Command { error, ctx, .. } => {
+            println!("Error in command `{}`: {:?}", ctx.command().name, error,);
+        }
+        error => {
+            if let Err(e) = poise::builtins::on_error(error).await {
+                println!("Error while handling error: {}", e)
             }
         }
     }
-
-    // Set a handler to be called on the `ready` event. This is called when a shard is booted, and
-    // a READY payload is sent by Discord. This payload contains data like the current user's guild
-    // Ids, current user data, private channels, and more.
-    //
-    // In this case, just print what the current user's username is.
-    async fn ready(&self, _: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
-    }
 }
+
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
     dotenv::dotenv().expect("Failed to load .env file");
-
     match serenity::utils::validate_token(&env::var("DISCORD_TOKEN").expect("Expected a token in the environment")) {
         Ok(_) => println!("Token is valid"),
         Err(why) => println!("Token is invalid: {:?}", why),
     }
     let token = &env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-    
-    
-    let intents = GatewayIntents::GUILD_MESSAGES
-        | GatewayIntents::DIRECT_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT;
+    let intents = serenity::GatewayIntents::GUILD_MESSAGES
+        | serenity::GatewayIntents::DIRECT_MESSAGES
+        | serenity::GatewayIntents::MESSAGE_CONTENT;
 
-    let mut client =
-        Client::builder(&token, intents).event_handler(Handler).await.expect("Err creating client");
+    let options = poise::FrameworkOptions {
+        commands: vec![
+            commands::age(),
+            commands::vote(),
+            commands::get_votes(),
+            ],
+        prefix_options: poise::PrefixFrameworkOptions {
+            prefix: Some(">".into()),
+            ..Default::default()
+        },
+        // The global error handler for all error cases that may occur
+        on_error: |error| Box::pin(on_error(error)),
+        ..Default::default()
+    };
+
+    let framework = poise::Framework::builder()
+        .setup(move |ctx, _ready, framework | {
+            Box::pin(async move {
+                println!("Logged in as {}", _ready.user.name);
+                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                Ok(Data {
+                    count: Mutex::new(usize::default())
+                })
+            })
+        })
+        .options(options)
+        .build();
+
+    let mut client = serenity::ClientBuilder::new(&token, intents)
+        .framework(framework)
+        .await
+        .expect("Err creating client");
+
+    println!("Client created");
 
     // Finally, start a single shard, and start listening to events.
     //
@@ -59,4 +85,5 @@ async fn main() {
     if let Err(why) = client.start().await {
         println!("Client error: {why:?}");
     }
+    println!("Client started");
 }

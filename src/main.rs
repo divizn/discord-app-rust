@@ -1,6 +1,6 @@
 mod commands;
 
-use std::env;
+use std::{collections::HashSet, env};
 use poise::serenity_prelude as serenity;
 use std::sync::Mutex;
 
@@ -45,14 +45,20 @@ async fn main() {
 
     let options = poise::FrameworkOptions {
         commands: vec![
+            commands::help(),
             commands::age(),
             commands::count(),
             commands::get_count(),
+            commands::get_avatar(),
+            commands::servers(),
+            commands::register(),
             ],
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some(">".into()),
             ..Default::default()
         },
+        // The owners of the bot, which are used for the owners_only attribute
+        owners: HashSet::from([serenity::UserId::new(env::var("DISCORD_OWNER_ID").expect("Expected a user id in the environment").parse::<u64>().expect("Expected a valid user id"))]),
         // The global error handler for all error cases that may occur
         on_error: |error| Box::pin(on_error(error)),
         ..Default::default()

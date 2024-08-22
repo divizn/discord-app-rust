@@ -44,7 +44,7 @@ async fn main() {
         | serenity::GatewayIntents::MESSAGE_CONTENT;
 
     let options = poise::FrameworkOptions {
-        commands: vec![
+        commands: vec![ // TODO: Easier way to add all commands
             commands::help(),
             commands::age(),
             commands::count(),

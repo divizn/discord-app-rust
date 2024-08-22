@@ -50,7 +50,7 @@ pub async fn count(
 pub async fn get_count(
     ctx: Context<'_>,
 ) -> Result<(), Error> {
-    let count = *ctx.data().count.lock().unwrap();
+    let count = { *ctx.data().count.lock().unwrap() };
     ctx.reply(format!("The current count is **{count}**.")).await?;
     Ok(())
 }

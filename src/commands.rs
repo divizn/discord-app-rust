@@ -41,7 +41,7 @@ pub async fn count(
         (*number - 1, *number)
     };
     let response = format!("Previous count was **{previous_count}**. Count is now **{total_count}**.");
-    ctx.say(response).await?;
+    ctx.reply(response).await?;
     Ok(())
 }
 
@@ -74,6 +74,7 @@ pub async fn help(
         extra_text_at_bottom: "\
 Type >help command for more info on a command.
 You can edit your message to the bot and the bot will edit its response.",
+        color: (255, 0, 0),
         ..Default::default()
     };
     poise::builtins::pretty_help(ctx, command.as_deref(), config).await?;

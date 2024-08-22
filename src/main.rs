@@ -69,6 +69,14 @@ async fn main() {
             Box::pin(async move {
                 println!("Logged in as {}", _ready.user.name);
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                // set status
+                let activity = serenity::ActivityData {
+                    name: "~".to_string(),
+                    kind: serenity::ActivityType::Custom,
+                    state: Some("❤️".to_string()),
+                    url: None
+                };
+                ctx.set_presence(Some(activity), serenity::OnlineStatus::DoNotDisturb);
                 Ok(Data {
                     count: Mutex::new(usize::default())
                 })

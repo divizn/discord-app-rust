@@ -17,13 +17,13 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
     // They are many errors that can occur, so we only handle the ones we want to customize
     // and forward the rest to the default handler
     match error {
-        poise::FrameworkError::Setup { error, .. } => panic!("Failed to start bot: {:?}", error),
+        poise::FrameworkError::Setup { error, .. } => panic!("Failed to start bot: {error:?}"),
         poise::FrameworkError::Command { error, ctx, .. } => {
-            println!("Error in command `{}`: {:?}", ctx.command().name, error,);
+            println!("Error in command `{}`: {error:?}", ctx.command().name);
         }
         error => {
             if let Err(e) = poise::builtins::on_error(error).await {
-                println!("Error while handling error: {}", e)
+                println!("Error while handling error: {e:?}");
             }
         }
     }
@@ -34,11 +34,11 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
 async fn main() {
     env_logger::init();
     dotenv::dotenv().expect("Failed to load .env file");
-    match serenity::utils::validate_token(&env::var("DISCORD_TOKEN").expect("Expected a token in the environment")) {
-        Ok(_) => println!("Token is valid"),
-        Err(why) => println!("Token is invalid: {:?}", why),
+    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    match serenity::utils::validate_token(&token) {
+        Ok(()) => println!("Token is valid"),
+        Err(why) => println!("Token is invalid: {why:?}"),
     }
-    let token = &env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let intents = serenity::GatewayIntents::GUILD_MESSAGES
         | serenity::GatewayIntents::DIRECT_MESSAGES
         | serenity::GatewayIntents::MESSAGE_CONTENT;
@@ -65,9 +65,9 @@ async fn main() {
     };
 
     let framework = poise::Framework::builder()
-        .setup(move |ctx, _ready, framework | {
+        .setup(move |ctx, ready, framework | {
             Box::pin(async move {
-                println!("Logged in as {}", _ready.user.name);
+                println!("Logged in as {}", ready.user.name);
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 // set status
                 let activity = serenity::ActivityData {
@@ -85,7 +85,7 @@ async fn main() {
         .options(options)
         .build();
 
-    let mut client = serenity::ClientBuilder::new(&token, intents)
+    let mut client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
         .await
         .expect("Err creating client");
